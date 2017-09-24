@@ -1,14 +1,14 @@
 import * as caffe from "./interfaces";
 import * as http from "http";
 
-export default mix;
+export default compose;
 
 var ERR_MIDDLEWARE = "Bad Argument: Middleware must be an array of functions!";
 
 /**
  * Composes an array of middleware into a single middleware function.
  */
-function mix (middleware: caffe.Middleware[]): caffe.Middleware {
+function compose (middleware: caffe.Middleware[]): caffe.Middleware {
   if (!Array.isArray(middleware)) throw new TypeError(ERR_MIDDLEWARE);
   for (var i = 0; i < middleware.length; i++) {
     if (typeof middleware[i] !== "function") throw new TypeError(ERR_MIDDLEWARE);

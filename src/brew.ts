@@ -1,6 +1,6 @@
 import * as caffe from "./interfaces";
 import * as http from "http";
-import mix from "./mix";
+import compose from "./compose";
 
 /**
  * Returns a new brew() method that is used for generating a HTTP request
@@ -12,7 +12,7 @@ export function customBrew (
   onError: caffe.ErrorHandler
 ): caffe.BrewFunction {
   return function (middleware) {
-    var run = mix(Array.isArray(middleware) ? middleware : [middleware]);
+    var run = compose(Array.isArray(middleware) ? middleware : [middleware]);
     return function (req, res) {
       // Set the default status code to 404
       res.statusCode = 404;

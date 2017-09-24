@@ -43,7 +43,7 @@ var validate  = require("caffe-validate");
  * List all of the todos in the database.
  */
 var listTodos = caffe.GET("/todos", [
-  validate.query(is => ({
+  validate.query((is, ctx) => ({
     limit: is.number(50).min(1).max(150),
   })),
   mongo.exec("todos", (todos, ctx) => {
@@ -56,7 +56,7 @@ var listTodos = caffe.GET("/todos", [
  * Add a new todo to the database.
  */
 var addTodo = caffe.POST("/todos", [
-  validate.input(is => ({
+  validate.input((is, ctx) => ({
     name: is.string().required().max(240),
   })),
   mongo.exec({ on: "todos", as: "newTodo" }, (todos, ctx) => {
@@ -108,12 +108,12 @@ caffe.brew([
 ]);
 ```
 
-#### `mix(middleware: Middleware[]) Middleware`
+#### `compose(middleware: Middleware[]) Middleware`
 
 Combine multiple middleware functions into a single middleware function.  Each middleware function will be run in a series and the result will be returned back up.
 
 ```js
-caffe.mix([
+caffe.compose([
   middlewareOne,
   middlewareTwo,
 ]);
