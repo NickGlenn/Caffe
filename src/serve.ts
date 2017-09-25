@@ -1,12 +1,11 @@
-import * as caffe from "./interfaces";
+import { ContextInterface } from "./context";
+import { RequestHandler } from "./brew";
 import * as http from "http";
-
-export default serve;
 
 /**
  * Start listening using a built app instance.
  */
-function serve(handler: caffe.RequestHandler, port: number): http.Server {
+export function serve(handler: RequestHandler, port: number): http.Server {
   var server = http.createServer(handler);
   server.listen(port, function () {
     // TODO: Something a bit fancier here
