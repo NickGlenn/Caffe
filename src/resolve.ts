@@ -1,9 +1,8 @@
-import * as caffe from "./interfaces";
-
-export default resolve;
+import { ContextInterface } from "./context";
+import { Middleware } from "./middleware";
 
 export interface ResolveFactory {
-  (ctx: caffe.ContextInterface): any
+  (ctx: ContextInterface): any
 }
 
 /**
@@ -11,7 +10,7 @@ export interface ResolveFactory {
  * key that can be accessed in following middleware.  Useful for attaching
  * DB instances or authenticated user info.
  */
-function resolve (key: string, factory: ResolveFactory): caffe.Middleware {
+export function resolve (key: string, factory: ResolveFactory): Middleware {
   return async function (ctx, next) {
     var val = await factory(ctx);
     ctx.setValue(key, val);
