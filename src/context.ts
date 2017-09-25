@@ -448,7 +448,7 @@ export class Context implements ContextInterface {
    * Performs a 302 redirect to the refferer URL.  when the Referrer
    * header is not present, the fallback is used instead.
    */
-  back(fallback?: string = "/") {
+  back(fallback: string = "/") {
     this.redirect(this.referrer || fallback);
   }
 
@@ -514,8 +514,6 @@ export class Context implements ContextInterface {
    * Set response body.
    */
   set body(val: any) {
-    const original = this._body;
-
     if (this.headersSent) {
       console.warn("Attempting to set body after headers have already been sent!");
       return;
@@ -535,6 +533,7 @@ export class Context implements ContextInterface {
       this.statusCode = 200;
     }
 
+    this.length = Buffer.byteLength(val);
     this._body = val;
   }
 
