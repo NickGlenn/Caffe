@@ -70,20 +70,12 @@ function defaultErrorHandler(err: Error) {
  * The default response processor.
  */
 function defaultResponseProcessor(ctx: ContextInterface, res: http.ServerResponse) {
-  if (ctx.method === "HEAD") {
-    if (!ctx.headersSent) {
-      ctx.length = Buffer.byteLength(JSON.stringify(ctx.body));
-    }
-    return res.end();
-  }
-
   if (ctx.body instanceof Stream) {
     ctx.body.pipe(res);
   } else {
     if (ctx.body == null) {
-      ctx.body = String(ctx.statusCode);
-      ctx.setResponseType("text/plain");
-      ctx.length = Buffer.byteLength(ctx.body);
+      ctx.body = http.STATUS_CODES[ctx.statusCode];
+      ctx.contentType = "text/plain";
     }
     res.end();
   }
