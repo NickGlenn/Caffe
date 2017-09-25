@@ -2,6 +2,7 @@ import * as http from "http";
 import * as url from "url";
 import * as mime from "mime-types";
 import vary from "vary";
+import * as escape from "escape-html";
 import * as accepts from "accepts";
 import * as fresh from "fresh";
 import { isBetween } from "./utils";
@@ -463,15 +464,15 @@ export class Context implements ContextInterface {
     }
 
     // html
-    if (this.ctx.accepts('html')) {
+    if (this.accepts("html")) {
       url = escape(url);
-      this.type = 'text/html; charset=utf-8';
+      this.contentType = "text/html; charset=utf-8";
       this.body = `Redirecting to <a href="${url}">${url}</a>.`;
       return;
     }
 
     // text
-    this.type = 'text/plain; charset=utf-8';
+    this.contentType = "text/plain; charset=utf-8";
     this.body = `Redirecting to ${url}.`;
   }
 
@@ -482,10 +483,10 @@ export class Context implements ContextInterface {
    * @api public
    */
 
-  attachment(filename) {
-    if (filename) this.type = extname(filename);
-    this.set('Content-Disposition', contentDisposition(filename));
-  },
+  // attachment(filename) {
+  //   if (filename) this.type = extname(filename);
+  //   this.set('Content-Disposition', contentDisposition(filename));
+  // },
 
   /**
    * Returns the method for the request.
