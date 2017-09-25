@@ -7,36 +7,60 @@ import * as accepts from "accepts";
 import * as fresh from "fresh";
 import { isBetween } from "./utils";
 
+export interface StringMap {
+  [key: string]: string
+}
+
+export interface CustomValueMap {
+  [key: string]: any
+}
+
 export interface ContextInterface {
+
+  // Dependencies
   req: http.IncomingMessage;
   res: http.ServerResponse;
+
+  // Request Info
+  method: string;
+  params: StringMap;
+  query: StringMap;
   url: string;
-  querystring: string;
-  query: object;
-  fresh: boolean;
-  stale: boolean;
-  idempotent: boolean;
+  search: string;
   protocol: string;
+  host: string;
+  hostname: string;
+  origin: string;
+  href: string;
+  subdomains: string[];
+  ip: string;
+  ips: string[];
+  isIdempotent: boolean;
   isSecure: boolean;
+  isFresh: boolean;
+  isStale: boolean;
+  isSocket: boolean;
+  isWebsocket: boolean;
   headers: http.IncomingHttpHeaders;
   requestHeaders: http.IncomingHttpHeaders;
-  responseHeaders: http.OutgoingHttpHeaders;
-  statusCode: number;
-  method: string;
-  body: any;
-  length: number;
-  headersSent: boolean;
-  contentType: string;
   lastModified: string;
   etag: string;
+  isMethod(method: string): boolean;
   accepts(...types: string[]): string;
   acceptsEncodings(...encodings: string[]): string;
   acceptsCharsets(...charsets: string[]): string;
   acceptsLanguages(...langs: string[]): string;
+  setLastModifiedWithDate(date: Date);
+
+  // Response Info
+  body: any;
+  statusCode: number;
+  headersSent: boolean;
+  responseHeaders: http.OutgoingHttpHeaders;
+  contentType: string;
+  length: number;
+  isWritable: boolean;
   vary(header: string);
-  isMethod(method: string): boolean;
-  getValue(key: string): any;
-  setValue(key: string, value: any): void;
   hasHeader(name: string): boolean;
   getHeader(name: string): null;
   getHeader(name: string): string;
@@ -45,22 +69,23 @@ export interface ContextInterface {
   setHeader(name: string, value: string): void;
   setHeader(name: string, value: string[]): void;
   removeHeader(name: string);
-  setLastModifiedWithDate(date: Date);
-}
+  flushHeaders(): void;
 
-export interface CustomValueMap {
-  [key: string]: any
+  // Everything else...
+  [key: string]: any;
+
 }
 
 export class Context implements ContextInterface {
 
   public req: http.IncomingMessage;
   public res: http.ServerResponse;
-  public query: object;
+  public query: StringMap;
+  public params: StringMap;
   private _body: any;
-  private _customValues: CustomValueMap = {};
   private _statusWasSet: boolean = false;
-  private _accept: accepts.Accept;
+  private _accept: accepts.Accepts;
+  private _url: url.Url;
 
   constructor(req: http.IncomingMessage, res: http.ServerResponse) {
     this.req = req;
@@ -69,20 +94,8 @@ export class Context implements ContextInterface {
     res.statusCode = 404;
     // Cache the parsed Accept info
     this._accept = accepts(req);
-  }
-
-  /**
-   * Returns a stored custom value using the given key.
-   */
-  getValue(key: string): any {
-    return (this._customValues[key] || null);
-  }
-
-  /**
-   * Sets a custom value to the request context.
-   */
-  setValue(key: string, value: any): void {
-    this._customValues[key] = value;
+    // Cache the parsed URL info
+    this._url = url.parse(req.url || "");
   }
 
   /**
@@ -96,8 +109,29 @@ export class Context implements ContextInterface {
    * Returns the "search" part of the URL for the request in
    * string form.
    */
-  get querystring(): string {
-    return (url.parse(this.url).search || "");
+  get search(): string {
+    return (this._url.search || "");
+  }
+
+  /**
+   * Returns the protocol or scheme for the request URL.
+   */
+  get protocol(): string {
+    return (this._url.protocol || "");
+  }
+
+  /**
+   * Returns the host for the request URL.
+   */
+  get host(): string {
+    return (this._url.host || "");
+  }
+
+  /**
+   * Returns the hostname for the request URL.
+   */
+  get hostname(): string {
+    return (this._url.hostname || ""):
   }
 
   /**
@@ -105,6 +139,13 @@ export class Context implements ContextInterface {
    */
   get origin(): string {
     return `${this.protocol}://${this.host}`;
+  }
+
+  /**
+   * The full hyperlink reference for the request.
+   */
+  get href(): string {
+    return (this._url.href || "");
   }
 
   /**
@@ -136,7 +177,7 @@ export class Context implements ContextInterface {
   /**
    * Check if the request is fresh, aka Last-Modified and/or the ETag still match.
    */
-  get fresh(): boolean {
+  get isFresh(): boolean {
     // GET or HEAD for weak freshness validation only
     if (this.method !== "GET" && this.method !== "HEAD") {
       return false;
@@ -154,14 +195,14 @@ export class Context implements ContextInterface {
   /**
    * Inverse of "fresh".
    */
-  get stale(): boolean {
-    return !this.fresh;
+  get isStale(): boolean {
+    return !this.isFresh;
   }
 
   /**
    * Check if the request is idempotent.
    */
-  get idempotent(): boolean {
+  get isIdempotent(): boolean {
     const methods = ["GET", "HEAD", "PUT", "DELETE", "OPTIONS", "TRACE"];
     return (methods.indexOf(this.method) !== -1);
   }
@@ -285,6 +326,13 @@ export class Context implements ContextInterface {
    */
   removeHeader(name: string) {
     this.res.removeHeader(name);
+  }
+
+  /**
+   * Flush any set headers and begin the body.
+   */
+  flushHeaders(): void {
+    this.res.flushHeaders();
   }
 
   /**
@@ -435,6 +483,19 @@ export class Context implements ContextInterface {
     } else {
       return null;
     }
+  }
+
+  /**
+   * Returns true if the request is still writable.  Tests for the
+   * existence of a the socket, since Node sometimes doesn't set it.
+   */
+  get isWritable(): boolean {
+    if (this.res.finished) {
+      return false;
+    }
+
+    var socket = this.req.socket;
+    return (!socket || socket.writable);
   }
 
   /**
